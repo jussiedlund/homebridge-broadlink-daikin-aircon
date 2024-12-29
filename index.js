@@ -1,6 +1,11 @@
 const Broadlink = require('kiwicam-broadlinkjs-rm');
 const broadlink_helper = require("./broadlink-helper")
 const daikin = require("./daikin")
+const BroadlinkDiscovery = require("./broadlink-discovery");
+const discoveryManager = new BroadlinkDiscovery(console);
+
+
+
 class DaikinAirconAccessory {
   constructor(log, config, api) {
     this.log = log;
@@ -12,7 +17,7 @@ class DaikinAirconAccessory {
     this.broadlink = new Broadlink();
 
     this.temperature = 32;
-    this.humidity = 100;
+    this.humidity = 0;
 
     this.daikin = new daikin.DaikinAircon()
 
@@ -92,7 +97,6 @@ class DaikinAirconAccessory {
     this.powerfulSwitchService = new this.api.hap.Service.Switch(`${config.name} Powerful Mode`, "powerful-mode");
 
     this.send_broadlink = () =>{
-      console.log("should send broadlink message")
       const message = this.daikin.createDaikinCodeForSending()
       const pulses = broadlink_helper.pulsesToData(message)
       this.device.sendData(Buffer.from(pulses))
@@ -191,7 +195,6 @@ setTargetAirconHeatingCoolingState(value) {
 }
 
 getTargetTemperature() {
-  this.device.checkTemperature();
   return this.daikin.temperature;
 }
 
@@ -201,14 +204,10 @@ setTargetTemperature(value) {
 }
 
 getCurrentTemperature() {
-  this.device.checkTemperature();
-  this.log.info("Get current temperature: ", this.temperature);
   return this.temperature;
 }
 
 getCurrentHumidity() {
-  this.device.checkTemperature();
-  this.log.info("Get current humidity: ", this.humidity);
   return this.humidity;
 }
 
@@ -254,27 +253,28 @@ getCurrentHumidity() {
   setFanSpeedHandler(value) {
     this.log.info("SET Fan Speed ->", value);
     if(value == 0) daikin.power = false;
-    switch(value) {
-      case value <= 16.67:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.QUIET
-        break;
-      case value <= 33.34:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL1
-        break;
-      case value <= 50:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL2
-        break;
-      case value <= 66.67:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL3
-        break;
-      case value <= 83.34:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL4
-        break;
-      default:
-        this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL5
-        break
-
-      }
+    if (value === 0) {
+      this.log.info("Turning off fan");
+      this.daikin.power = false;
+    } else if (value <= 16.67) {
+      this.log.info("Fan Speed set to QUIET");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.QUIET;
+    } else if (value <= 33.34) {
+      this.log.info("Fan Speed set to Level1");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL1;
+    } else if (value <= 50) {
+      this.log.info("Fan Speed set to Level2");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL2;
+    } else if (value <= 66.67) {
+      this.log.info("Fan Speed set to Level3");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL3;
+    } else if (value <= 83.34) {
+      this.log.info("Fan Speed set to Level4");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL4;
+    } else {
+      this.log.info("Fan Speed set to Level5");
+      this.daikin.fanSpeed = daikin.DaikinAircon.FAN_SPEEDS.LEVEL5;
+    }
     this.send_broadlink();
   }
 
@@ -290,45 +290,40 @@ getCurrentHumidity() {
   }
 
   discoverDevice() {
-      this.log.info("Discovering Broadlink device...");
-
-      // Start discovery
-      this.broadlink.discover();
-
-      this.broadlink.on("deviceReady", (device) => {
-        const mac = device.mac.toString("hex").toUpperCase();
-        const host = device.host.address;
-
-        this.log.info(`Discovered device: MAC=${mac}, Host=${host}`);
-
-        // Match device by MAC or Host from config
-        if ((this.config.mac && mac === this.config.mac.toUpperCase()) || (this.config.host && host === this.config.host)) {
+    this.log.info("Using shared Broadlink discovery manager...");
+  
+    discoveryManager
+      .discover(this.config, this.deviceDiscoveryTimeout)
+      .then((device) => {
+        if (device) {
           this.device = device;
-          this.device.checkTemperature();
-          this.log.info(`Broadlink device matched: MAC=${mac}, Host=${host}`);
-
-          device.authenticate();
-
-          device.on("temperature", (temperature,humidity) => {
-            this.log.info(`Temperature: ${temperature} Humidity: ${humidity}`);
-            this.temperature = temperature;
-            this.humidity = humidity;
-            this.airconService.getCharacteristic(this.api.hap.Characteristic.CurrentTemperature).updateValue(temperature);
-          });
-
-
-        }
-    });
+  
+          this.log.info(`Broadlink device matched: MAC=${device.mac.toString("hex").toUpperCase()}, Host=${device.host.address}`);
+  
+          // Example: Check temperature if supported
+          if (device.checkTemperature) {
+            device.checkTemperature();
+            device.on("temperature", (temperature, humidity) => {
+              if(temperature && humidity) {
+                this.log.info(`Temperature: ${temperature}, Humidity: ${humidity}`);
+                this.temperature = temperature;
+                this.humidity = humidity;
     
-
-    // Stop discovery after timeout
-    setTimeout(() => {
-      if (!this.device) {
-        this.log.warn("No Broadlink device found matching the configuration.");
-      }
-    }, this.deviceDiscoveryTimeout);
-
+                this.airconService
+                  .getCharacteristic(this.api.hap.Characteristic.CurrentTemperature)
+                  .updateValue(temperature);
+                }
+            });
+          }
+        } else {
+          this.log.warn("No matching Broadlink device found.");
+        }
+      })
+      .catch((err) => {
+        this.log.error("Broadlink discovery failed:", err);
+      });
   }
+
 }
 
 
