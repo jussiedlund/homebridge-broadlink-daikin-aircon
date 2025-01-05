@@ -1,6 +1,6 @@
 const Broadlink = require('kiwicam-broadlinkjs-rm');
-const broadlink_helper = require("./broadlink-helper")
-const daikin = require("./daikin")
+const broadlink_helper = require("./broadlink-helper");
+const daikin = require("./daikin");
 const BroadlinkDiscovery = require("./broadlink-discovery");
 const discoveryManager = new BroadlinkDiscovery(console);
 
@@ -19,7 +19,7 @@ class DaikinAirconAccessory {
     this.temperature = 32;
     this.humidity = 0;
 
-    this.daikin = new daikin.DaikinAircon()
+    this.daikin = new daikin.DaikinAircon();
 
     this.discoverDevice();
 
@@ -70,7 +70,7 @@ class DaikinAirconAccessory {
         this.api.hap.Characteristic.TargetHeatingCoolingState.COOL
       ]
     })
-    .onGet(this.getCurrentAirconHeatingCoolingState.bind(this))
+    .onGet(this.getCurrentAirconHeatingCoolingState.bind(this));
 
     this.airconService.setPrimaryService(true);
 
@@ -107,9 +107,7 @@ class DaikinAirconAccessory {
       .onSet((value) => {
         this.daikin.powerfulMode = value;
         this.send_broadlink();
-        // this.isPowerfulMode = value;
         this.log.info(`Powerful Mode -> ${value}`);
-        // Add Broadlink command for Powerful Mode here
       });
 
     this.isPowerfulMode = false;
@@ -127,7 +125,6 @@ class DaikinAirconAccessory {
       });
 
     this.isEconoMode = false;
-    this.log.info("DaikinAirconAccessory constructor finished");
   }
 
   // Air Conditioner Handlers
@@ -149,7 +146,6 @@ class DaikinAirconAccessory {
 
 
   getTargetAirconHeatingCoolingState() {
-    this.log.info("GET Air Conditioner Target Heating Cooling State");
     if(this.daikin.power == false) {
       return this.api.hap.Characteristic.CurrentHeatingCoolingState.OFF;
     }
@@ -167,7 +163,6 @@ class DaikinAirconAccessory {
 
 
 setTargetAirconHeatingCoolingState(value) {
-  this.log.info("SET Air Conditioner Target Heating Cooling State ->", value);
   switch (value) {
     case this.api.hap.Characteristic.TargetHeatingCoolingState.OFF:
       this.log.info("Turning Air Conditioner OFF");
@@ -204,6 +199,7 @@ setTargetTemperature(value) {
 }
 
 getCurrentTemperature() {
+  device.checkTemperature();
   return this.temperature;
 }
 
