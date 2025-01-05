@@ -23,6 +23,8 @@ class DaikinAirconAccessory {
 
     this.discoverDevice();
 
+    this.hasTemperatureSensor = false;
+
     // Accessory Information Service
     this.informationService = new this.api.hap.Service.AccessoryInformation()
       .setCharacteristic(this.api.hap.Characteristic.Manufacturer, "Daikin")
@@ -199,7 +201,6 @@ setTargetTemperature(value) {
 }
 
 getCurrentTemperature() {
-  device.checkTemperature();
   return this.temperature;
 }
 
@@ -299,6 +300,10 @@ getCurrentHumidity() {
           // Example: Check temperature if supported
           if (device.checkTemperature) {
             device.checkTemperature();
+            this.hasTemperatureSensor = true;
+            setInterval(() => {
+              device.checkTemperature();
+            }, 60000); // Runs every 60 seconds
             device.on("temperature", (temperature, humidity) => {
               if(temperature && humidity) {
                 this.log.info(`Temperature: ${temperature}, Humidity: ${humidity}`);
