@@ -1,18 +1,18 @@
 {
   "name": "homebridge-broadlink-daikin-aircon",
   "displayName": "Broadlink Daikin Aircon",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Control a Daikin airconditioner over a broadlink.",
   "author": "Jussi Edlund",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/USERNAME/GITHUB_PROJECT_NAME#readme",
+  "homepage": "https://github.com/jussiedlund/homebridge-broadlink-daikin-aircon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME.git"
+    "url": "https://github.com/jussiedlund/homebridge-broadlink-daikin-aircon"
   },
   "bugs": {
-    "url": "https://github.com/USERNAME/GITHUB_PROJECT_NAME/issues"
+    "url": "https://github.com/jussiedlund/homebridge-broadlink-daikin-aircon/issues"
   },
   "keywords": [
     "homebridge-plugin"

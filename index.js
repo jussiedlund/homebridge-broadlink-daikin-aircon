@@ -300,20 +300,14 @@ getCurrentHumidity() {
           // Example: Check temperature if supported
           if (device.checkTemperature) {
             device.checkTemperature();
-            this.hasTemperatureSensor = true;
-            setInterval(() => {
-              device.checkTemperature();
-            }, 60000); // Runs every 60 seconds
             device.on("temperature", (temperature, humidity) => {
-              if(temperature && humidity) {
-                this.log.info(`Temperature: ${temperature}, Humidity: ${humidity}`);
-                this.temperature = temperature;
-                this.humidity = humidity;
-    
-                this.airconService
-                  .getCharacteristic(this.api.hap.Characteristic.CurrentTemperature)
-                  .updateValue(temperature);
-                }
+              this.log.info(`Temperature: ${temperature}, Humidity: ${humidity}`);
+              this.temperature = temperature;
+              this.humidity = humidity;
+  
+              this.airconService
+                .getCharacteristic(this.api.hap.Characteristic.CurrentTemperature)
+                .updateValue(temperature);
             });
           }
         } else {

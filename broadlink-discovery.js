@@ -6,9 +6,10 @@ class BroadlinkDiscovery {
     this.broadlink = new Broadlink();
     this.devices = {}; // Map of discovered devices
     this.discoveryInProgress = false;
+    this.pingInterval = 30000; // Interval in milliseconds for pinging devices
   }
 
-  discover(config, timeout = 5000) {
+  discover(config, timeout = 10000) {
     const key = config.mac?.toUpperCase() || config.host;
 
     if (this.devices[key]) {
@@ -65,6 +66,34 @@ class BroadlinkDiscovery {
       }, timeout);
     });
   }
+
+
+  startPing(device) {
+    this.log.info(`Starting periodic ping for device: MAC=${device.mac.toString("hex").toUpperCase()}`);
+    setInterval(() => {
+      try {
+        device.checkTemperature?.(); // Example: check temperature to ensure connectivity
+        this.log.info(`Ping successful for device: MAC=${device.mac.toString("hex").toUpperCase()}`);
+      } catch (err) {
+        this.log.warn(`Ping failed for device: MAC=${device.mac.toString("hex").toUpperCase()}, attempting rediscovery.`);
+        this.rediscoverDevice(device);
+      }
+    }, this.pingInterval);
+  }
+
+  rediscoverDevice(device) {
+    const mac = device.mac.toString("hex").toUpperCase();
+    this.log.info(`Attempting rediscovery for device: MAC=${mac}`);
+    device.authenticate((err) => {
+      if (err) {
+        this.log.error(`Failed to reauthenticate device: MAC=${mac}`, err);
+      } else {
+        this.log.info(`Reauthenticated device: MAC=${mac}`);
+      }
+    });
+  }
+
+
 }
 
 module.exports = BroadlinkDiscovery;
